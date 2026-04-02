@@ -1,0 +1,156 @@
+version: 2
+
+models:
+  - name: dim_products
+    description: "Product dimension table - one row per product"
+    columns:
+      - name: PRODUCT_ID
+        description: "Unique product identifier"
+        tests:
+          - not_null
+          - unique
+      - name: CATEGORY_ID
+        description: "Unique category identifier"
+        tests:
+          - not_null
+      - name: CATEGORY_CODE
+        description: "Full category path"
+        tests:
+          - not_null
+      - name: CATEGORY_L1
+        description: "Top level category"
+        tests:
+          - not_null
+      - name: CATEGORY_LEAF
+        description: "Most specific category level"
+        tests:
+          - not_null
+      - name: BRAND
+        description: "Product brand"
+        tests:
+          - not_null
+
+  - name: dim_dates
+    description: "Date dimension table - one row per date"
+    columns:
+      - name: EVENT_DATE
+        description: "Date of the event - primary key"
+        tests:
+          - not_null
+          - unique
+      - name: DAY_NAME
+        description: "Name of the day"
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+      - name: DAY_OF_WEEK
+        description: "Day of week number 0=Sun, 6=Sat"
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [0, 1, 2, 3, 4, 5, 6]
+      - name: IS_WEEKEND
+        description: "True if Saturday or Sunday"
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [true, false]
+      - name: MONTH
+        description: "Month number 1-12"
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+      - name: QUARTER
+        description: "Quarter number 1-4"
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [1, 2, 3, 4]
+      - name: YEAR
+        description: "Year of the event"
+        tests:
+          - not_null
+
+  - name: fct_events
+    description: "Fact table containing all events"
+    columns:
+      - name: EVENT_TIME
+        description: "Timestamp of the event"
+        tests:
+          - not_null
+      - name: EVENT_DATE
+        description: "Date of the event - FK to dim_dates"
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_dates')
+                field: EVENT_DATE
+      - name: EVENT_HOUR
+        description: "Hour of the event 0-23"
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23]
+      - name: PRODUCT_ID
+        description: "FK to dim_products"
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_products')
+                field: PRODUCT_ID
+      - name: USER_ID
+        description: "User identifier"
+        tests:
+          - not_null
+      - name: USER_SESSION
+        description: "Session identifier"
+        tests:
+          - not_null
+      - name: PRICE
+        description: "Product price"
+        tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              arguments:
+                expression: ">= 0"
+      - name: IS_VIEW
+        description: "1 if view event"
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [0, 1]
+      - name: IS_CART
+        description: "1 if cart event"
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [0, 1]
+      - name: IS_PURCHASE
+        description: "1 if purchase event"
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [0, 1]
+
+# ## What's New Compared to Before
+
+# dim_products → added all 6 columns with tests ✅
+# dim_dates    → added accepted_values for every column ✅
+# fct_events   → added relationships tests! ✅
+#                └── EVENT_DATE → dim_dates
+#                └── PRODUCT_ID → dim_products
+#                added accepted_values for EVENT_HOUR ✅
+#                added price >= 0 test ✅
